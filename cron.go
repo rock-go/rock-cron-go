@@ -5,8 +5,8 @@ import (
 	"sort"
 	"sync"
 	"time"
-	"github.com/rock-go/lua"
-	"github.com/rock-go/internal/logger"
+	"github.com/rock-go/rock/lua"
+	"github.com/rock-go/rock/logger"
 )
 
 // Cron keeps track of any number of entries, invoking the associated func as

@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"sync"
 	"time"
-	"github.com/rock-go/internal/logger"
+	"github.com/rock-go/rock/logger"
 )
 
 // JobWrapper decorates the given Job with some behavior.

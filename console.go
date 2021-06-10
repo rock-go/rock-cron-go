@@ -1,6 +1,6 @@
 package cron
 
-import "github.com/rock-go/lua"
+import "github.com/rock-go/rock/lua"
 
 func (c *Cron) Header(out lua.Printer) {
 	out.Printf("type: %s" , c.Type())

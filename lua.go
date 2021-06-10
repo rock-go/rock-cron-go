@@ -1,9 +1,9 @@
 package cron
 
 import (
-	"github.com/rock-go/lua"
-	"github.com/rock-go/lua/xcall"
-	"github.com/rock-go/internal/logger"
+	"github.com/rock-go/rock/lua"
+	"github.com/rock-go/rock/xcall"
+	"github.com/rock-go/rock/logger"
 )
 
 func (c *Cron)LAddFunc(L *lua.LState) int {
