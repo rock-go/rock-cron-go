@@ -4,7 +4,10 @@ import (
 	"github.com/rock-go/rock/lua"
 	"github.com/rock-go/rock/xcall"
 	"github.com/rock-go/rock/logger"
+	"reflect"
 )
+
+var CRON = reflect.TypeOf((*Cron)(nil)).String()
 
 func (c *Cron)LAddFunc(L *lua.LState) int {
 	n := L.GetTop()
@@ -49,25 +52,8 @@ func (c *Cron) Index(L *lua.LState , key string) lua.LValue {
 
 func newLuaCron(L *lua.LState) int {
 	name := L.CheckString(1)
-	var ok bool
-	var obj *Cron
-
-	proc := L.NewProc(name)
-	//是否需要新建
-	if proc.Value == nil {
-		goto done
-	}
-
-	//是否是更新配置
-	obj , ok = proc.Value.(*Cron)
-	if !ok {
-		L.RaiseError("invalid proc")
-		return 0
-	}
-	obj.Close()
-
-done:
-	proc.Value = New(name)
+	proc := L.NewProc(name , CRON)
+	proc.Set(New(name))
 	L.Push(proc)
 	return 1
 }
