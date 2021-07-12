@@ -5,6 +5,7 @@ import (
 	"github.com/rock-go/rock/xcall"
 	"github.com/rock-go/rock/logger"
 	"reflect"
+	"github.com/rock-go/rock/utils"
 )
 
 var CRON = reflect.TypeOf((*Cron)(nil)).String()
@@ -51,9 +52,15 @@ func (c *Cron) Index(L *lua.LState , key string) lua.LValue {
 }
 
 func newLuaCron(L *lua.LState) int {
-	name := L.CheckString(1)
+	name := utils.CheckProcName(L.Get(1) , L)
+
 	proc := L.NewProc(name , CRON)
-	proc.Set(New(name))
+	if proc.IsNil() {
+		proc.Set(New(name))
+	} else {
+		proc.Value.(*Cron).name = name
+	}
+
 	L.Push(proc)
 	return 1
 }
