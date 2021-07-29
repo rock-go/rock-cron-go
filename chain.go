@@ -2,10 +2,10 @@ package cron
 
 import (
 	"fmt"
+	"github.com/rock-go/rock/logger"
 	"runtime"
 	"sync"
 	"time"
-	"github.com/rock-go/rock/logger"
 )
 
 // JobWrapper decorates the given Job with some behavior.

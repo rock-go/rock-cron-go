@@ -7,6 +7,10 @@ import (
 // Option represents a modification to the default behavior of a Cron.
 type Option func(*Cron)
 
+func TimeFormat(t time.Time) string {
+	return t.Format("2006-01-02 15:04:05")
+}
+
 // WithLocation overrides the timezone of the cron instance.
 func WithLocation(loc *time.Location) Option {
 	return func(c *Cron) {

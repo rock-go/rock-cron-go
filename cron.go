@@ -2,11 +2,11 @@ package cron
 
 import (
 	"context"
+	"github.com/rock-go/rock/logger"
+	"github.com/rock-go/rock/lua"
 	"sort"
 	"sync"
 	"time"
-	"github.com/rock-go/rock/lua"
-	"github.com/rock-go/rock/logger"
 )
 
 // Cron keeps track of any number of entries, invoking the associated func as
@@ -18,15 +18,15 @@ type mask struct {
 	label string
 }
 
-func newMask(spec , label string) mask {
-	return mask{spec , label}
+func newMask(spec, label string) mask {
+	return mask{spec, label}
 }
 
 type Cron struct {
 	lua.Super
-	name      string
-	stat      lua.LightUserDataStatus
-	uptime    time.Time
+	name   string
+	stat   lua.LightUserDataStatus
+	uptime time.Time
 
 	masks     []mask
 	entries   []*Entry
@@ -127,9 +127,8 @@ func (s byTime) Less(i, j int) bool {
 //     Default:     A chain that recovers panics and logs them to stderr.
 //
 // See "cron.With*" to modify the default behavior.
-func New(name string , opts ...Option) *Cron {
+func New(name string, opts ...Option) *Cron {
 	c := &Cron{
-		stat: lua.INIT,
 		name: name,
 
 		entries:   nil,
@@ -142,11 +141,13 @@ func New(name string , opts ...Option) *Cron {
 		runningMu: sync.Mutex{},
 		location:  time.Local,
 		parser:    standardParser,
-
 	}
 	for _, opt := range opts {
 		opt(c)
 	}
+
+	c.S = lua.INIT
+	c.T = CRON
 	return c
 }
 
@@ -154,14 +155,6 @@ func New(name string , opts ...Option) *Cron {
 type FuncJob func()
 
 func (f FuncJob) Run() { f() }
-
-func (c *Cron) State() lua.LightUserDataStatus {
-	return c.stat
-}
-
-func (c *Cron) Type() string {
-	return "rock.crontab"
-}
 
 func (c *Cron) Name() string {
 	return c.name
@@ -244,7 +237,7 @@ func (c *Cron) Remove(id EntryID) {
 }
 
 // start the cron scheduler in its own goroutine, or no-op if already started.
-func (c *Cron) start()  {
+func (c *Cron) start() {
 	c.runningMu.Lock()
 	defer c.runningMu.Unlock()
 	if c.running {
@@ -256,8 +249,8 @@ func (c *Cron) start()  {
 
 func (c *Cron) Start() error {
 	c.start()
-	c.uptime = time.Now()
-	c.stat = lua.RUNNING
+	c.U = time.Now()
+	c.S = lua.RUNNING
 	return nil
 }
 
@@ -282,7 +275,7 @@ func (c *Cron) run() {
 	now := c.now()
 	for _, entry := range c.entries {
 		entry.Next = entry.Schedule.Next(now)
-		logger.Info("schedule", "now", now, "entry", entry.ID, "next", entry.Next)
+		//logger.Info("schedule", "now", now, "entry", entry.ID, "next", entry.Next)
 	}
 
 	for {
@@ -302,7 +295,7 @@ func (c *Cron) run() {
 			select {
 			case now = <-timer.C:
 				now = now.In(c.location)
-				logger.Infof("wake now %s" , now.String())
+				//logger.Infof("wake now %s", TimeFormat(now))
 
 				// Run every entry whose next time was less than now
 				for _, e := range c.entries {
@@ -312,7 +305,7 @@ func (c *Cron) run() {
 					c.startJob(e.WrappedJob)
 					e.Prev = e.Next
 					e.Next = e.Schedule.Next(now)
-					logger.Infof("run now %s entry %d next %v" , now.String() , e.ID , e.Next)
+					//logger.Infof("run now %s entry %d next %v", TimeFormat(now), e.ID, TimeFormat(e.Next))
 				}
 
 			case newEntry := <-c.add:
@@ -320,7 +313,7 @@ func (c *Cron) run() {
 				now = c.now()
 				newEntry.Next = newEntry.Schedule.Next(now)
 				c.entries = append(c.entries, newEntry)
-				logger.Info("added", "now", now, "entry", newEntry.ID, "next", newEntry.Next)
+				//logger.Info("added", "now", TimeFormat(now), "entry", newEntry.ID, "next", TimeFormat(newEntry.Next))
 
 			case replyChan := <-c.snapshot:
 				replyChan <- c.entrySnapshot()
@@ -357,7 +350,17 @@ func (c *Cron) now() time.Time {
 	return time.Now().In(c.location)
 }
 
+func (c *Cron) Clear() {
+	for _ , entry := range c.entries {
+		logger.Errorf("%s cron entry id:%d exit ..." , c.Name() , entry.ID)
+		c.removeEntry(entry.ID)
+	}
+}
+
 func (c *Cron) Close() error {
+	logger.Errorf("%s close ..." , c.Name())
+
+	c.Clear()
 	c.Stop().Done()
 	return nil
 }
