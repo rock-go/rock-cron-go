@@ -59,6 +59,7 @@ func newLuaCron(L *lua.LState) int {
 	if proc.IsNil() {
 		proc.Set(New(name))
 	} else {
+		proc.Value.(*Cron).Close()
 		proc.Value.(*Cron).name = name
 	}
 

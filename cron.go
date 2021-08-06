@@ -359,7 +359,7 @@ func (c *Cron) Clear() {
 
 func (c *Cron) Close() error {
 	logger.Errorf("%s close ..." , c.Name())
-
+	c.S = lua.CLOSE
 	c.Clear()
 	c.Stop().Done()
 	return nil
