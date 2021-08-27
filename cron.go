@@ -147,7 +147,7 @@ func New(name string, opts ...Option) *Cron {
 	}
 
 	c.S = lua.INIT
-	c.T = CRON
+	c.T = _CronTypeOf
 	return c
 }
 
