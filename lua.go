@@ -1,19 +1,23 @@
 package cron
 
 import (
-	"github.com/rock-go/rock/logger"
+	"errors"
+	"github.com/rock-go/rock/audit"
+	"github.com/rock-go/rock/auxlib"
 	"github.com/rock-go/rock/lua"
-	"github.com/rock-go/rock/utils"
 	"github.com/rock-go/rock/xcall"
 	"reflect"
 )
 
-var _CronTypeOf = reflect.TypeOf((*Cron)(nil)).String()
+var (
+	_CronTypeOf = reflect.TypeOf((*Cron)(nil)).String()
+	invalidArgs = errors.New("invalid args , usage add(string , title , function)")
+)
 
 func (c *Cron) NewLuaTask(L *lua.LState) int {
 	n := L.GetTop()
 	if n != 3 {
-		L.RaiseError("invalid args , usage add(string , title , function)")
+		L.RaiseError("%v" , invalidArgs)
 		return 0
 	}
 
@@ -21,21 +25,31 @@ func (c *Cron) NewLuaTask(L *lua.LState) int {
 	title := L.CheckString(2)
 	fn := L.CheckFunction(3)
 
-	eid, err := c.AddFunc(spec, func() {
-		//这里注意 多个函数同时触发
-		co := lua.State()
-		//co.A = L.A
+	ud := L.NewAnyData(&struct{}{})
+	ud.Meta("spec" , lua.S2L(spec))
+	ud.Meta("title" , lua.S2L(title))
 
-		e := xcall.CallByEnv(co, fn, xcall.Rock)
-		if e != nil {
-			logger.Errorf("%v", e)
+	eid, err := c.AddFunc(spec, func() {
+		co := lua.Clone(L)
+			//这里注意 多个函数同时触发
+		err := xcall.CallByParam( co , lua.P{
+			Fn:fn ,
+			NRet: 0,
+			Protect: false,
+		}, xcall.Rock , ud)
+
+		if err != nil {
+			audit.NewEvent("rock.crontab",
+				audit.Subject("计划任务执行失败"),
+				audit.From(co.CodeVM()),
+				audit.Msg("title: %s spec: %s" , title , spec),
+				audit.E(err)).Log().Put()
 		}
-		//回收co虚拟机
 		lua.FreeState(co)
 	})
 
 	if err != nil {
-		L.RaiseError("%v", err)
+		L.RaiseError("%v" , err)
 		return 0
 	}
 
@@ -55,14 +69,16 @@ func (c *Cron) Index(L *lua.LState, key string) lua.LValue {
 }
 
 func newLuaCron(L *lua.LState) int {
-	name := utils.CheckProcName(L.Get(1), L)
+	name := auxlib.CheckProcName(L.Get(1), L)
 
 	proc := L.NewProc(name, _CronTypeOf)
 	if proc.IsNil() {
 		proc.Set(New(name))
 	} else {
-		proc.Value.(*Cron).Close()
-		proc.Value.(*Cron).name = name
+		c := proc.Value.(*Cron)
+		c.Close()
+		c.name = name
+		c.masks = c.masks[:0]
 	}
 
 	L.Push(proc)

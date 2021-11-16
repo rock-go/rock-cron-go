@@ -46,7 +46,7 @@ cron支持固定时间间隔，格式为：
     cron.task("@every 5s" , "获取系统信息5s" , function() end)
 ```
 
-## cron.task(spec , title , function)
+## cron.task(spec , title , function(t))
 启动和添加任务函数
 ```lua
     cron.task("@every 1s" , "获取系统信息1s" , function() 

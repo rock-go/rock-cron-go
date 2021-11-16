@@ -49,7 +49,7 @@ var (
 )
 
 const (
-	// Set the top bit if a star was included in the expression.
+	// V the top bit if a star was included in the expression.
 	starBit = 1 << 63
 )
 

@@ -146,8 +146,8 @@ func New(name string, opts ...Option) *Cron {
 		opt(c)
 	}
 
-	c.S = lua.INIT
-	c.T = _CronTypeOf
+	c.Status = lua.INIT
+	c.TypeOf = _CronTypeOf
 	return c
 }
 
@@ -249,8 +249,8 @@ func (c *Cron) start() {
 
 func (c *Cron) Start() error {
 	c.start()
-	c.U = time.Now()
-	c.S = lua.RUNNING
+	c.Uptime = time.Now()
+	c.Status = lua.RUN
 	return nil
 }
 
@@ -359,7 +359,7 @@ func (c *Cron) Clear() {
 
 func (c *Cron) Close() error {
 	logger.Errorf("%s close ..." , c.Name())
-	c.S = lua.CLOSE
+	c.Status = lua.CLOSE
 	c.Clear()
 	c.Stop().Done()
 	return nil
